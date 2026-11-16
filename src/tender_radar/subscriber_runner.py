@@ -29,8 +29,8 @@ from .polar_guard import LOCAL_TEST_HOSTS, _NoRedirectHandler, _check_dns_public
 from .scorer import score_and_rank_tenders
 
 POLAR_API_BASE_URL = "https://api.polar.sh/v1"
-DEFAULT_PRO_PRODUCT_ID = os.environ.get("TENDERRADAR_PRO_PRODUCT_ID", "tenderradar-pro")
-DEFAULT_AGENCY_PRODUCT_ID = os.environ.get("TENDERRADAR_AGENCY_PRODUCT_ID", "tenderradar-agency")
+DEFAULT_PRO_PRODUCT_ID = os.environ.get("TENDERRADAR_PRO_PRODUCT_ID", "0bf896dd-e186-4875-bd78-8628bd469422")
+DEFAULT_AGENCY_PRODUCT_ID = os.environ.get("TENDERRADAR_AGENCY_PRODUCT_ID", "d2532f72-e5f9-4613-a51d-be052b9d77fe")
 MAX_AGENCY_PROFILES = 5
 MAX_PRO_PROFILES = 1
 USER_AGENT = "TenderRadar-SubscriberRunner/0.1.0"
@@ -141,8 +141,8 @@ def _parse_single_profile_spec(
 def parse_polar_subscription(
     raw: Mapping[str, Any],
     *,
-    pro_product_id: str,
-    agency_product_id: str,
+    pro_product_id: str = DEFAULT_PRO_PRODUCT_ID,
+    agency_product_id: str = DEFAULT_AGENCY_PRODUCT_ID,
 ) -> SubscriberConfig:
     """Parse a Polar subscription payload into a validated SubscriberConfig."""
     if not isinstance(raw, Mapping):
@@ -154,10 +154,10 @@ def parse_polar_subscription(
 
     product_obj = raw.get("product") if isinstance(raw.get("product"), Mapping) else {}
     product_id = str(raw.get("product_id") or product_obj.get("id") or "").strip()
-    if product_id == agency_product_id:
+    if product_id in (agency_product_id, "tenderradar-agency"):
         tier = "agency"
         max_profiles = MAX_AGENCY_PROFILES
-    elif product_id == pro_product_id:
+    elif product_id in (pro_product_id, "tenderradar-pro"):
         tier = "pro"
         max_profiles = MAX_PRO_PROFILES
     else:

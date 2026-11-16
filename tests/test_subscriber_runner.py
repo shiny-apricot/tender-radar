@@ -24,6 +24,8 @@ for _p in (str(PRODUCT_ROOT / "src"), str(PROCUREMENT_SRC), str(REPO_ROOT)):
 
 from eu_uk_procurement_mcp.models import NormalizedTender
 from tender_radar.subscriber_runner import (
+    DEFAULT_AGENCY_PRODUCT_ID,
+    DEFAULT_PRO_PRODUCT_ID,
     SubscriberConfig,
     SubscriberCycleReport,
     deliver_webhook_payload,
@@ -118,6 +120,75 @@ def test_parse_polar_subscription_pro_and_agency_limits() -> None:
                 pro_product_id="prod_pro",
                 agency_product_id="prod_agency",
             )
+
+
+def test_parse_polar_subscription_live_polar_uuids_and_aliases() -> None:
+    assert DEFAULT_PRO_PRODUCT_ID == "0bf896dd-e186-4875-bd78-8628bd469422"
+    assert DEFAULT_AGENCY_PRODUCT_ID == "d2532f72-e5f9-4613-a51d-be052b9d77fe"
+
+    pro_live = parse_polar_subscription(
+        {
+            "id": "sub_live_pro_uuid",
+            "product_id": "0bf896dd-e186-4875-bd78-8628bd469422",
+            "customer_id": "cust_live_pro",
+            "status": "active",
+            "custom_field_data": {
+                "cpv_and_keywords": "72:software; 48:cloud",
+                "target_countries": "DEU",
+                "delivery_webhook_url": "https://hooks.example.org/services/live-pro",
+            },
+        }
+    )
+    assert pro_live.tier == "pro"
+    assert len(pro_live.profiles) == 1
+
+    agency_live = parse_polar_subscription(
+        {
+            "id": "sub_live_agency_uuid",
+            "product_id": "d2532f72-e5f9-4613-a51d-be052b9d77fe",
+            "customer_id": "cust_live_agency",
+            "status": "active",
+            "custom_field_data": {
+                "cpv_and_keywords": "72:software; 48:platform; 7221:security; 7231:data; 7251:cloud; 30:hardware",
+                "target_countries": "GBR",
+                "delivery_webhook_url": "https://hooks.example.org/services/live-agency",
+            },
+        }
+    )
+    assert agency_live.tier == "agency"
+    assert len(agency_live.profiles) == 5
+
+    pro_alias = parse_polar_subscription(
+        {
+            "id": "sub_alias_pro",
+            "product_id": "tenderradar-pro",
+            "customer_id": "cust_alias_pro",
+            "status": "active",
+            "custom_field_data": {
+                "cpv_and_keywords": "72:software; 48:cloud",
+                "target_countries": "DEU",
+                "delivery_webhook_url": "https://hooks.example.org/services/alias-pro",
+            },
+        }
+    )
+    assert pro_alias.tier == "pro"
+    assert len(pro_alias.profiles) == 1
+
+    agency_alias = parse_polar_subscription(
+        {
+            "id": "sub_alias_agency",
+            "product_id": "tenderradar-agency",
+            "customer_id": "cust_alias_agency",
+            "status": "active",
+            "custom_field_data": {
+                "cpv_and_keywords": "72:software; 48:platform; 7221:security; 7231:data; 7251:cloud; 30:hardware",
+                "target_countries": "GBR",
+                "delivery_webhook_url": "https://hooks.example.org/services/alias-agency",
+            },
+        }
+    )
+    assert agency_alias.tier == "agency"
+    assert len(agency_alias.profiles) == 5
 
 
 def test_validate_webhook_https_ssrf_blocks_private_and_allows_public(
