@@ -25,7 +25,7 @@ from .digest import (
     strip_sharia_vetoed,
 )
 from .models import DigestReport, SavedSearchProfile
-from .polar_guard import LOCAL_TEST_HOSTS, _check_dns_public
+from .polar_guard import LOCAL_TEST_HOSTS, _NoRedirectHandler, _check_dns_public
 from .scorer import score_and_rank_tenders
 
 POLAR_API_BASE_URL = "https://api.polar.sh/v1"
@@ -168,7 +168,15 @@ def parse_polar_subscription(
     customer_obj = raw.get("customer") if isinstance(raw.get("customer"), Mapping) else {}
     customer_id = str(raw.get("customer_id") or customer_obj.get("id") or "").strip()
     customer_email = str(customer_obj.get("email") or raw.get("customer_email") or "").strip()
-    status = str(raw.get("status") or "active").strip().lower()
+    raw_status = raw.get("status")
+    if raw_status is not None:
+        status = str(raw_status).strip().lower()
+        if status != "active":
+            raise ValueError(
+                f"Subscription '{sub_id}' is not active (status='{status}')."
+            )
+    else:
+        status = "active"
 
     custom_raw = raw.get("custom_field_data")
     if not isinstance(custom_raw, Mapping):
@@ -369,15 +377,25 @@ def deliver_webhook_payload(
             "User-Agent": USER_AGENT,
         },
     )
-    http_opener = opener or urllib.request.build_opener()
+    http_opener = opener or urllib.request.build_opener(_NoRedirectHandler())
     try:
         with http_opener.open(req, timeout=timeout) as resp:
             status_code = int(getattr(resp, "status", 200))
             excerpt = resp.read(500).decode("utf-8", errors="replace")
+            if 300 <= status_code < 400:
+                location = str(getattr(resp, "headers", {}).get("Location") or "")
+                raise RuntimeError(
+                    f"Webhook SSRF redirect blocked: HTTP {status_code} -> {location or 'redirect'}"
+                )
             if status_code >= 400:
                 raise RuntimeError(f"Webhook returned HTTP {status_code}: {excerpt}")
             return status_code, excerpt
     except urllib.error.HTTPError as exc:
+        if 300 <= exc.code < 400:
+            location = str(exc.headers.get("Location") or "") if exc.headers else ""
+            raise RuntimeError(
+                f"Webhook SSRF redirect blocked: HTTP {exc.code} -> {location or exc.reason}"
+            ) from exc
         err_body = ""
         try:
             err_body = exc.read(256).decode("utf-8", errors="replace")

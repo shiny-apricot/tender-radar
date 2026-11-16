@@ -111,6 +111,14 @@ def test_parse_polar_subscription_pro_and_agency_limits() -> None:
             agency_product_id="prod_agency",
         )
 
+    for inactive_status in ("canceled", "past_due", "incomplete"):
+        with pytest.raises(ValueError, match="not active"):
+            parse_polar_subscription(
+                {**pro_raw, "status": inactive_status},
+                pro_product_id="prod_pro",
+                agency_product_id="prod_agency",
+            )
+
 
 def test_validate_webhook_https_ssrf_blocks_private_and_allows_public(
     monkeypatch: pytest.MonkeyPatch,
@@ -284,6 +292,48 @@ def test_fetch_polar_subscriptions_fail_closed_and_cycle_delivery(tmp_path: Path
         with sqlite3.connect(db_path) as conn:
             count = conn.execute("SELECT COUNT(*) FROM subscriber_delivery_runs;").fetchone()[0]
         assert count == 3
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_deliver_webhook_payload_blocks_http_307_ssrf_redirect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempted_hosts: list[tuple[str, int]] = []
+    orig_create_connection = socket.create_connection
+
+    def _spy_create_connection(address: tuple[str, int], *args: Any, **kwargs: Any) -> Any:
+        attempted_hosts.append((str(address[0]), int(address[1])))
+        if str(address[0]) == "169.254.169.254":
+            raise AssertionError("Must NEVER attempt connection to metadata IP 169.254.169.254")
+        return orig_create_connection(address, *args, **kwargs)
+
+    monkeypatch.setattr(socket, "create_connection", _spy_create_connection)
+
+    class _RedirectWebhookHandler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            self.send_response(307)
+            self.send_header("Location", "http://169.254.169.254/latest/meta-data")
+            self.end_headers()
+
+        def log_message(self, format: str, *args: Any) -> None:
+            del format, args
+
+    server = HTTPServer(("127.0.0.1", 0), _RedirectWebhookHandler)
+    server_port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        with pytest.raises(RuntimeError, match=r"SSRF redirect blocked: HTTP 307"):
+            deliver_webhook_payload(
+                f"http://127.0.0.1:{server_port}/redirect-hook",
+                {"text": "hi", "notices": []},
+                allow_loopback_for_tests=True,
+            )
+        assert ("127.0.0.1", server_port) in attempted_hosts
+        assert all(host != "169.254.169.254" for host, _ in attempted_hosts)
     finally:
         server.shutdown()
         server.server_close()
