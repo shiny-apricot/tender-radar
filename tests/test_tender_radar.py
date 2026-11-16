@@ -501,31 +501,26 @@ def test_polar_guard_local_server_and_validation() -> None:
 
 
 def test_landing_page_and_readme_pass_truth_gate_and_linter() -> None:
-    pro_url = "https://buy.polar.sh/polar_cl_LopwJ42wCZM4fJZEjN7ol7STY65BGuUeYIKTM1EskWF"
-    agency_url = "https://buy.polar.sh/polar_cl_TZRXHXGzEh6vHE3UspMsCeHieF1Dvz9eakexW0K5qur"
-    assert _safe_http_url(pro_url) == pro_url
-    assert _safe_http_url(agency_url) == agency_url
+    paused_notice = "Self-serve checkout paused pending Polar API token activation"
 
     readme_path = PRODUCT_ROOT / "README.md"
     readme_text = readme_path.read_text(encoding="utf-8")
-    assert pro_url in readme_text
-    assert agency_url in readme_text
+    assert "buy.polar.sh" not in readme_text
+    assert "pro-rata" not in readme_text.lower()
+    assert paused_notice in readme_text
+    assert "kenzailab@gmail.com" in readme_text
     assert "https://github.com/shiny-apricot/tender-radar" in readme_text
-    assert "<24h" in readme_text
-    assert ">26h" in readme_text
 
     landing_path = PRODUCT_ROOT / "docs" / "index.html"
     assert landing_path.is_file()
     raw_html = landing_path.read_text(encoding="utf-8")
     assert len(raw_html.encode("utf-8")) < 15 * 1024
-    assert pro_url in raw_html
-    assert agency_url in raw_html
-    assert "$49/mo" in raw_html
-    assert "$99/mo" in raw_html
+    assert "buy.polar.sh" not in raw_html
+    assert "pro-rata" not in raw_html.lower()
+    assert paused_notice in raw_html
     assert "https://github.com/shiny-apricot/tender-radar" in raw_html
     assert '<meta property="og:image" content="https://shiny-apricot.github.io/tender-radar/assets/og-card.png">' in raw_html
     assert '<meta name="twitter:card" content="summary_large_image">' in raw_html
-    assert "&lt;24h async CPV setup via kenzailab@gmail.com; pro-rata credit if daily run misses &gt;26h" in raw_html
     assert "mailto:kenzailab@gmail.com?subject=TenderRadar%207-Day%20Sample" in raw_html
     assert "<img" not in raw_html.lower()
     assert "<video" not in raw_html.lower()
@@ -552,65 +547,49 @@ def test_landing_page_and_readme_pass_truth_gate_and_linter() -> None:
         assert find_leaks(raw_html) == []
         assert find_leaks(visible_text) == []
 
-        offerings = {
-            "tender_radar_pro": Offering(
-                id="tender_radar_pro",
-                name="TenderRadar Pro",
-                price=49.0,
-                status="live",
-                url=pro_url,
+        from autonomy_corp.marketing_linter import lint_funnel_parity
+
+        frozen_offering = Offering(
+            id="tenderradar-pro",
+            name="TenderRadar Pro",
+            price=49.0,
+            status="paused_pending_token",
+            fulfillment_verified=False,
+            attached_custom_fields=("cpv_and_keywords", "target_countries", "delivery_webhook_url"),
+            active_cron_runner=False,
+        )
+        parity = lint_funnel_parity(readme_text, raw_html, frozen_offering)
+        assert parity.is_clean is True, f"Funnel parity issues on frozen docs: {parity.issues}"
+
+        sample_pkg = OutboundPackage(
+            channel="landing_cta",
+            recipient="kenzailab@gmail.com",
+            subject="TenderRadar Free 7-Day Sample Digest",
+            body=(
+                "Self-serve checkout paused pending Polar API token activation. "
+                "Request a free 7-day EU TED v3 & UK OCDS sample digest via kenzailab@gmail.com."
             ),
-            "tender_radar_agency": Offering(
-                id="tender_radar_agency",
-                name="TenderRadar Agency",
-                price=99.0,
+            evidence=(
+                EvidenceItem("TenderRadar source", "https://github.com/shiny-apricot/tender-radar"),
+            ),
+            source_mode="live",
+            authored_by="worker-solution-coder",
+            reviewed_by="worker-anti-slop-qa-gate",
+            founder_approved=True,
+            offering_id="iktisad-oss",
+        )
+        sample_offerings = {
+            "iktisad-oss": Offering(
+                id="iktisad-oss",
+                name="Open-source MIT CLI",
+                price=0.0,
                 status="live",
-                url=agency_url,
+                fulfillment_verified=True,
             ),
         }
-        pro_pkg = OutboundPackage(
-            channel="landing_cta",
-            recipient="kenzailab@gmail.com",
-            subject="TenderRadar Pro ($49/mo) EU & UK Bid-Fit Digest",
-            body=(
-                f"TenderRadar Pro ($49/mo) delivers 1 saved search profile across EU TED v3 and UK OCDS "
-                f"with pro-rata credit if daily digest drops past 26h. Checkout: {pro_url}"
-            ),
-            evidence=(
-                EvidenceItem("Live Polar Pro checkout", pro_url),
-                EvidenceItem("TenderRadar source", "https://github.com/shiny-apricot/tender-radar"),
-            ),
-            source_mode="live",
-            authored_by="worker-solution-coder",
-            reviewed_by="worker-anti-slop-qa-gate",
-            founder_approved=True,
-            offering_id="tender_radar_pro",
-        )
-        agency_pkg = OutboundPackage(
-            channel="landing_cta",
-            recipient="kenzailab@gmail.com",
-            subject="TenderRadar Agency ($99/mo) EU & UK Bid-Fit Digest",
-            body=(
-                f"TenderRadar Agency ($99/mo) delivers up to 5 saved search profiles across EU TED v3 and UK OCDS "
-                f"with pro-rata credit if daily digest drops past 26h. Checkout: {agency_url}"
-            ),
-            evidence=(
-                EvidenceItem("Live Polar Agency checkout", agency_url),
-                EvidenceItem("TenderRadar source", "https://github.com/shiny-apricot/tender-radar"),
-            ),
-            source_mode="live",
-            authored_by="worker-solution-coder",
-            reviewed_by="worker-anti-slop-qa-gate",
-            founder_approved=True,
-            offering_id="tender_radar_agency",
-        )
-        pro_check = check_outbound_package(pro_pkg, offerings=offerings)
-        assert pro_check.ok is True
-        assert pro_check.violations == ()
-
-        agency_check = check_outbound_package(agency_pkg, offerings=offerings)
-        assert agency_check.ok is True
-        assert agency_check.violations == ()
+        sample_check = check_outbound_package(sample_pkg, offerings=sample_offerings)
+        assert sample_check.ok is True
+        assert sample_check.violations == ()
     else:
         assert _standalone_find_leaks(readme_text) == []
         assert _standalone_find_leaks(raw_html) == []
