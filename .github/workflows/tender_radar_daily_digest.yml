@@ -1,0 +1,103 @@
+name: TenderRadar Daily Bid-Fit Digest
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      keyword:
+        description: "Procurement search keyword"
+        required: false
+        default: "software"
+      cpv:
+        description: "Comma-separated CPV prefixes"
+        required: false
+        default: "48,72"
+      country:
+        description: "Comma-separated ISO2/ISO3 country codes"
+        required: false
+        default: "GBR,DEU"
+
+concurrency:
+  group: tender-radar-${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  daily-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore seen-tender SQLite state
+        uses: actions/cache@v4
+        with:
+          path: .cache/tender_radar_state.db
+          key: tender-radar-state-${{ github.run_id }}
+          restore-keys: |
+            tender-radar-state-
+
+      - name: Generate TenderRadar daily digest and optional webhook delivery
+        env:
+          PYTHONPATH: src
+          INPUT_KEYWORD: ${{ github.event.inputs.keyword || 'software' }}
+          INPUT_CPV: ${{ github.event.inputs.cpv || '48,72' }}
+          INPUT_COUNTRY: ${{ github.event.inputs.country || 'GBR,DEU' }}
+          TENDER_RADAR_WEBHOOK_URL: ${{ secrets.TENDER_RADAR_WEBHOOK_URL }}
+        run: |
+          mkdir -p .cache output_digest
+          python3 -m tender_radar \
+            --keyword "$INPUT_KEYWORD" \
+            --cpv "$INPUT_CPV" \
+            --country "$INPUT_COUNTRY" \
+            --db-path .cache/tender_radar_state.db \
+            --markdown-out output_digest/latest_digest.md \
+            --html-out output_digest/latest_digest.html \
+            --webhook-out output_digest/latest_webhook.json
+          if [ -n "$TENDER_RADAR_WEBHOOK_URL" ]; then
+            curl -fsS -X POST -H "Content-Type: application/json" \
+              -d @output_digest/latest_webhook.json \
+              "$TENDER_RADAR_WEBHOOK_URL"
+          fi
+
+      - name: Upload daily digest artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tender-radar-daily-digest
+          path: output_digest/
+          retention-days: 14
+
+      - name: Refresh static vertical sample HTML (fail-soft)
+        continue-on-error: true
+        env:
+          PYTHONPATH: src
+        run: |
+          python3 -m tender_radar.samples --out-dir docs/samples
+
+      - name: Configure GitHub Pages (fail-soft)
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact (fail-soft)
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy GitHub Pages (fail-soft)
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        id: deployment
+        uses: actions/deploy-pages@v4

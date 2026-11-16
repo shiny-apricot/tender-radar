@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TenderRadar — EU TED v3 &amp; UK OCDS Bid-Fit Digest</title>
+  <meta name="description" content="Deterministic EU TED v3 and UK Contracts Finder bid-fit scoring, disqualifiers, and deduplicated daily digests.">
+  <meta property="og:title" content="TenderRadar — EU TED v3 &amp; UK OCDS Bid-Fit Digest">
+  <meta property="og:description" content="16 notices fetched -> 13 disqualified filtered -> 3 eligible (top fit 88/100). Daily EU &amp; UK public procurement scoring.">
+  <meta property="og:image" content="https://shiny-apricot.github.io/tender-radar/assets/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://shiny-apricot.github.io/tender-radar/assets/og-card.png">
+  <style>
+    :root { --bg: #0b1120; --card: #111827; --border: #1f2937; --text: #f3f4f6; --muted: #9ca3af; --accent: #38bdf8; --green: #34d399; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+    .brand { font-weight: 700; font-size: 1.25rem; color: #fff; }
+    .cta { display: inline-block; padding: 9px 16px; border-radius: 6px; background: var(--accent); color: #082f49; font-weight: 600; text-decoration: none; font-size: 0.92rem; }
+    .cta-alt { display: inline-block; padding: 9px 16px; border-radius: 6px; border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 0.92rem; margin-left: 8px; }
+    h1 { font-size: 1.9rem; margin: 0 0 10px 0; }
+    h2 { font-size: 1.2rem; margin: 26px 0 10px 0; color: #fff; }
+    p { color: var(--muted); margin: 0 0 12px 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 18px 0; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .tag { display: inline-block; font-size: 0.78rem; color: var(--green); border: 1px solid #065f46; padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+    pre { background: #030712; border: 1px solid var(--border); border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 0.82rem; color: #e5e7eb; margin: 8px 0 0 0; }
+    ul { margin: 8px 0 0 18px; color: var(--muted); }
+    footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 0.82rem; color: var(--muted); }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">TenderRadar</div>
+      <div>
+        <a class="cta" href="mailto:kenzailab@gmail.com?subject=TenderRadar%207-Day%20Sample">Request Sample Digest</a>
+        <a class="cta-alt" href="https://github.com/shiny-apricot/tender-radar">GitHub Repo</a>
+      </div>
+    </header>
+
+    <main>
+      <h1>EU &amp; UK Public Tenders, Scored Before You Bid</h1>
+      <p>Free portal alerts dump raw XML and JSON notices into your inbox. TenderRadar scores bid fit, removes duplicates, and flags disqualifiers daily.</p>
+
+      <div class="grid">
+        <section class="card">
+          <span class="tag">Before: Raw EU TED JSON</span>
+          <p>Unfiltered fields, mixed currencies, and duplicate cross-portal entries.</p>
+          <pre><code>{
+  "publication-number": "756436-2026",
+  "notice-title": {"ron": "Achizitie licente", "eng": "License management software package"},
+  "classification-cpv": ["48218000"],
+  "estimated-value-proc": 1881155.9,
+  "estimated-value-cur-proc": "RON",
+  "deadline-receipt-tender-date-lot": "2026-12-09+02:00"
+}</code></pre>
+        </section>
+
+        <section class="card">
+          <span class="tag">After: 5-Line Bid-Fit Digest</span>
+          <p>Deterministic 0-100 score, EUR normalization, and SQLite seen-state filtering.</p>
+          <pre><code>[88/100] License management software package (756436-2026)
+Buyer: Ministerul Justitiei (ROU | eu_ted_v3)
+CPV: 48218000 | Est: 1,881,156 RON (~EUR 376,231)
+Fit: cpv:48218000, keywords:software, runway:24d
+Link: https://ted.europa.eu/en/notice/-/detail/756436-2026</code></pre>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>Ethical CPV &amp; Sector Screening</h2>
+        <p>Every query and tender passes strict deterministic screening before reaching your digest.</p>
+        <ul>
+          <li>Blocked CPV prefixes: <code>159</code> (alcoholic beverages), <code>353</code> (weapons/ammunition), <code>354</code> (military vehicles), <code>357</code> (military electronics), and <code>6611</code> (banking/interest finance).</li>
+          <li>Blocked sector tokens: weapons, alcohol, winery, brewery, tobacco, pork, gambling, casino, adult content, banking, bank loan, credit facility, and interest-bearing debt.</li>
+          <li>Profile disqualifiers: excluded keywords, country mismatch, tight deadlines, and low budgets.</li>
+        </ul>
+      </section>
+
+      <section class="card" style="margin-top: 16px;">
+        <h2>Live CPV Vertical Sample Digests</h2>
+        <p>Inspect real EU TED v3 and UK Contracts Finder notices scored by TenderRadar across five B2B software verticals.</p>
+        <ul>
+          <li><a href="samples/cloud-software.html">Cloud &amp; Enterprise Software (CPV 72, keyword: software)</a></li>
+          <li><a href="samples/cybersecurity.html">Cybersecurity &amp; Security Software (CPV 7221, keyword: security)</a></li>
+          <li><a href="samples/data-analytics.html">Data Processing &amp; Analytics (CPV 7231, keyword: data)</a></li>
+          <li><a href="samples/managed-infra.html">Managed Cloud &amp; IT Infrastructure (CPV 7251, keyword: cloud)</a></li>
+          <li><a href="samples/enterprise-platforms.html">Enterprise Software Packages &amp; Platforms (CPV 48, keyword: platform)</a></li>
+        </ul>
+      </section>
+
+      <section class="card" style="margin-top: 16px;">
+        <h2>Pricing &amp; Fixed-Scope SLA</h2>
+        <p>Subscribe directly via Polar checkout. Every plan includes strict ethical exclusions and a 26-hour daily digest SLA.</p>
+        <div class="grid">
+          <div class="card">
+            <span class="tag">Pro — $49/mo</span>
+            <p>For single-vertical engineering teams and solo consultants.</p>
+            <ul>
+              <li>1 saved search profile across EU TED v3 and UK OCDS.</li>
+              <li>Daily deduplicated bid-fit digest (Markdown, HTML, or webhook).</li>
+              <li>Pro-rata billing credit if a daily digest run drops past 26 hours.</li>
+            </ul>
+            <p style="margin-top: 14px;">
+              <a class="cta" href="https://buy.polar.sh/polar_cl_LopwJ42wCZM4fJZEjN7ol7STY65BGuUeYIKTM1EskWF">Subscribe Pro ($49/mo)</a>
+            </p>
+          </div>
+          <div class="card">
+            <span class="tag">Agency — $99/mo</span>
+            <p>For multi-vertical bid desks and procurement advisory teams.</p>
+            <ul>
+              <li>Up to 5 saved search profiles across EU and UK CPV verticals.</li>
+              <li>Per-profile SQLite seen-state deduplication and disqualifier audit.</li>
+              <li>Pro-rata billing credit if a daily digest run drops past 26 hours.</li>
+            </ul>
+            <p style="margin-top: 14px;">
+              <a class="cta" href="https://buy.polar.sh/polar_cl_TZRXHXGzEh6vHE3UspMsCeHieF1Dvz9eakexW0K5qur">Subscribe Agency ($99/mo)</a>
+            </p>
+          </div>
+        </div>
+        <p>SLA Scope: &lt;24h async CPV setup via kenzailab@gmail.com; pro-rata credit if daily run misses &gt;26h. Daily digests exclude blocked CPV prefixes (159, 353, 354, 357, 6611), alcohol, tobacco, gambling, banking, and interest-bearing debt notices. Cancel anytime in Polar.</p>
+      </section>
+
+      <section class="card" style="margin-top: 16px;">
+        <h2>Request a Custom Sample Digest</h2>
+        <p>Send your target CPV codes and countries by email or open a GitHub issue.</p>
+        <p>
+          <a class="cta" href="mailto:kenzailab@gmail.com?subject=TenderRadar%207-Day%20Sample&amp;body=CPV%20prefixes%3A%2048%2C72%0ACountries%3A%20GBR%2CDEU%0AKeywords%3A%20software">Email Sample Request</a>
+          <a class="cta-alt" href="https://github.com/shiny-apricot/tender-radar/issues/new?title=TenderRadar%207-Day%20Sample">Open GitHub Issue</a>
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>EU tender notices sourced via TED API v3 (European Union, Commission Decision 2011/833/EU). Contains public sector information licensed under the Open Government Licence v3.0.</p>
+    </footer>
+  </div>
+</body>
+</html>

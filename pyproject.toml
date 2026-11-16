@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tender-radar"
+version = "0.1.0"
+description = "Stateless EU TED v3 and UK Contracts Finder OCDS automated bid-fit digest engine"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Kenz Labs", email = "kenzailab@gmail.com"}
+]
+keywords = [
+    "procurement",
+    "tenders",
+    "eu-ted",
+    "uk-contracts-finder",
+    "ocds",
+    "bid-fit",
+    "digest"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business"
+]
+dependencies = []
+
+[project.scripts]
+tender-radar = "tender_radar.digest:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
