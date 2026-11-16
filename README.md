@@ -38,7 +38,7 @@ PYTHONPATH=src \
 ## Early Access & Checkout Status
 
 - **Repository**: [github.com/shiny-apricot/tender-radar](https://github.com/shiny-apricot/tender-radar)
-- **Status**: Self-serve checkout paused pending Polar API token activation. Request a free 7-day sample digest via `kenzailab@gmail.com`.
+- **Status**: Early-access cohorts & free 7-day sample digests onboarding via kenzailab@gmail.com — self-serve Polar checkout re-opens once cloud scheduler billing clears.
 - **7-Day Sample Digest**: Email `kenzailab@gmail.com` with subject `TenderRadar 7-Day Sample` and your target CPV codes and countries.
 
 ## Legal Attribution

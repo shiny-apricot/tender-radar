@@ -501,7 +501,10 @@ def test_polar_guard_local_server_and_validation() -> None:
 
 
 def test_landing_page_and_readme_pass_truth_gate_and_linter() -> None:
-    paused_notice = "Self-serve checkout paused pending Polar API token activation"
+    paused_notice = (
+        "Early-access cohorts & free 7-day sample digests onboarding via kenzailab@gmail.com "
+        "— self-serve Polar checkout re-opens once cloud scheduler billing clears."
+    )
 
     readme_path = PRODUCT_ROOT / "README.md"
     readme_text = readme_path.read_text(encoding="utf-8")
@@ -517,7 +520,7 @@ def test_landing_page_and_readme_pass_truth_gate_and_linter() -> None:
     assert len(raw_html.encode("utf-8")) < 15 * 1024
     assert "buy.polar.sh" not in raw_html
     assert "pro-rata" not in raw_html.lower()
-    assert paused_notice in raw_html
+    assert paused_notice in html.unescape(raw_html)
     assert "https://github.com/shiny-apricot/tender-radar" in raw_html
     assert '<meta property="og:image" content="https://shiny-apricot.github.io/tender-radar/assets/og-card.png">' in raw_html
     assert '<meta name="twitter:card" content="summary_large_image">' in raw_html
@@ -566,8 +569,8 @@ def test_landing_page_and_readme_pass_truth_gate_and_linter() -> None:
             recipient="kenzailab@gmail.com",
             subject="TenderRadar Free 7-Day Sample Digest",
             body=(
-                "Self-serve checkout paused pending Polar API token activation. "
-                "Request a free 7-day EU TED v3 & UK OCDS sample digest via kenzailab@gmail.com."
+                "Early-access cohorts & free 7-day sample digests onboarding via kenzailab@gmail.com "
+                "— self-serve Polar checkout re-opens once cloud scheduler billing clears."
             ),
             evidence=(
                 EvidenceItem("TenderRadar source", "https://github.com/shiny-apricot/tender-radar"),
